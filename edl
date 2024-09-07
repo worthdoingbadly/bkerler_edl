@@ -290,7 +290,14 @@ class main(metaclass=LogBase):
         conninfo = self.doconnect(loop)
         mode = conninfo["mode"]
         if conninfo.get("data"):
-            version = conninfo.get("data").version
+            try:
+                version = conninfo.get("data").version
+            except AttributeError as e:
+                print(e)
+                self.sahara.cmd_reset_state_machine()
+                conninfo = self.sahara.connect()
+                mode = conninfo["mode"]
+                version = conninfo.get("data").version
         else:
             version = 2
         if mode == "sahara":
@@ -338,7 +345,18 @@ class main(metaclass=LogBase):
                             if "data" in resp:
                                 data = resp["data"]
                             if mode == "sahara":
-                                mode = self.sahara.upload_loader(version=version)
+                                #mode = self.sahara.upload_loader(version=version)
+                                pass
+                            for i in range(150):
+                                print("ask for reset state machine")
+                                self.sahara.cmd_reset_state_machine()
+                                print("reconnect")
+                                resp = self.sahara.connect()
+                                print(resp)
+                                print("ask for info again", i)
+                                sahara_info = self.sahara.cmd_info(version=version)
+                                print(sahara_info)
+                            return
                         else:
                             print("Error on sahara handshake, resetting.")
                             self.sahara.cmd_reset()
